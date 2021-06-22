@@ -1,12 +1,15 @@
+import json
+
 from django.shortcuts import render
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.views.generic.edit import FormView
 from django.views.generic.base import View
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm
 from django.contrib.auth import login, logout
+from datetime import datetime
 
-from .models import Riddle, Option
+from .models import Riddle, Option, Message
 
 app_url = "/riddles/"
 
@@ -38,7 +41,12 @@ def detail(request, riddle_id):
         "answer.html",
         {
             "riddle": get_object_or_404(Riddle, pk=riddle_id),
-            "error_message": error_message
+            "error_message": error_message,
+            "latest_messages":
+                Message.objects
+                    .filter(chat_id=riddle_id)
+                    .order_by('-pub_date')[:5]
+
         }
     )
 
@@ -103,4 +111,33 @@ class PasswordChangeView(FormView):
     def form_valid(self, form):
         form.save()
         return super(PasswordChangeView, self).form_valid(form)
+
+
+def post(request, riddle_id):
+    msg = Message()
+    msg.author = request.user
+    msg.chat = get_object_or_404(Riddle, pk=riddle_id)
+    msg.message = request.POST['message']
+    msg.pub_date = datetime.now()
+    msg.save()
+    return HttpResponseRedirect(app_url+str(riddle_id))
+
+
+def msg_list(request, riddle_id):
+    res = list(
+            Message.objects
+                .filter(chat_id=riddle_id)
+                .order_by('-pub_date')[:5]
+                .values('author__username',
+                        'pub_date',
+                        'message'
+                )
+            )
+    for r in res:
+        r['pub_date'] = \
+            r['pub_date'].strftime(
+                '%d.%m.%Y %H:%M:%S'
+            )
+    return JsonResponse(json.dumps(res), safe=False)
+
 
