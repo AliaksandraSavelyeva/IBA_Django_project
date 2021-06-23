@@ -2,6 +2,7 @@
 <script>
     function send_msg_update_request(){
         $.get("msg_list/",{},parse_msg_update_response);
+        $.get("get_mark/",{},parse_mark_update_response);
     }
     function parse_msg_update_response(data, success){
         res = JSON.parse(data);
@@ -23,6 +24,10 @@
                     '<br/>'
         }
         $("#history").html(res_str);
+    }
+    function parse_mark_update_response(data, success){
+        res = JSON.parse(data);
+        $("#avg_mark_span").html(res["mark__avg"].toFixed(1));
     }
     setInterval(send_msg_update_request, 5000);
 </script>
@@ -46,6 +51,54 @@
         {% endfor %}
         <input type="submit" value="Answer"/>
     </form>
+    <hr>
+    <h4>Rating</h4>
+    <p>Average rating:
+        <span id="avg_mark_span">
+            {{ avg_mark }}
+        </span>
+    </p>
+    {% if user.is_authenticated %}
+        {% if already_rated_by_user == 0%}
+            <form action="post_mark/" method="post">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-sm text-center">
+                        <input name="mark"
+                               type="radio"
+                               value="1"/> 1
+                    </div>
+                    <div class="col-sm text-center">
+                        <input name="mark"
+                               type="radio"
+                               value="2"/> 2
+                    </div>
+                    <div class="col-sm text-center">
+                        <input name="mark"
+                               type="radio"
+                               value="3"/> 3
+                    </div>
+                    <div class="col-sm text-center">
+                        <input name="mark"
+                               type="radio"
+                               value="4"/> 4
+                    </div>
+                    <div class="col-sm text-center">
+                        <input name="mark"
+                               type="radio"
+                               value="5"/> 5
+                    </div>
+                    <div class="col-sm text-center">
+                        <input class="btn btn-success"
+                            type="submit"
+                            value="Send mark"/>
+                    </div>
+                </div>
+            </form>
+            {% else %}
+            Your rating: {{ user_rating }}
+        {% endif %}
+    {% endif %}
     <hr>
     <h4>Chat</h4>
     {% if user.is_authenticated %}

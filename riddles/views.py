@@ -8,8 +8,9 @@ from django.views.generic.base import View
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm
 from django.contrib.auth import login, logout
 from datetime import datetime
+from django.db.models import Avg
 
-from .models import Riddle, Option, Message
+from .models import Riddle, Option, Message, Mark
 
 app_url = "/riddles/"
 
@@ -31,6 +32,7 @@ def index(request):
         }
     )
 
+
 # страница загадки со списком ответов
 def detail(request, riddle_id):
     error_message = None
@@ -40,13 +42,32 @@ def detail(request, riddle_id):
         request,
         "answer.html",
         {
-            "riddle": get_object_or_404(Riddle, pk=riddle_id),
+            "riddle": get_object_or_404(
+                Riddle, pk=riddle_id),
             "error_message": error_message,
             "latest_messages":
                 Message.objects
                     .filter(chat_id=riddle_id)
-                    .order_by('-pub_date')[:5]
-
+                    .order_by('-pub_date')[:5],
+            # кол-во оценок, выставленных пользователем
+            "already_rated_by_user":
+                Mark.objects
+                    .filter(author_id=request.user.id)
+                    .filter(riddle_id=riddle_id)
+                    .count(),
+            # оценка текущего пользователя
+            "user_rating":
+                Mark.objects
+                    .filter(author_id=request.user.id)
+                    .filter(riddle_id=riddle_id)
+                    .aggregate(Avg('mark'))
+                    ["mark__avg"],
+            # средняя по всем пользователям оценка
+            "avg_mark":
+                Mark.objects
+                    .filter(riddle_id=riddle_id)
+                    .aggregate(Avg('mark'))
+                    ["mark__avg"]
         }
     )
 
@@ -69,6 +90,24 @@ def answer(request, riddle_id):
                 '/riddles/'+str(riddle_id)+
                 '?error_message=Wrong Answer!',
             )
+
+
+def post_mark(request, riddle_id):
+    msg = Mark()
+    msg.author = request.user
+    msg.riddle = get_object_or_404(Riddle, pk=riddle_id)
+    msg.mark = request.POST['mark']
+    msg.pub_date = datetime.now()
+    msg.save()
+    return HttpResponseRedirect(app_url+str(riddle_id))
+
+
+def get_mark(request, riddle_id):
+    res = Mark.objects\
+            .filter(riddle_id=riddle_id)\
+            .aggregate(Avg('mark'))
+
+    return JsonResponse(json.dumps(res), safe=False)
 
 
 class RegisterFormView(FormView):
