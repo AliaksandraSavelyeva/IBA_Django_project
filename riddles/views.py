@@ -14,8 +14,10 @@ from .models import Riddle, Option, Message, Mark
 
 app_url = "/riddles/"
 
+
 def index(request):
     return HttpResponse("Hello, World!")
+
 
 # главная страница со списком загадок
 def index(request):
