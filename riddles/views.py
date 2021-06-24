@@ -205,6 +205,13 @@ def msg_list(request, riddle_id):
     return JsonResponse(json.dumps(res), safe=False)
 
 
+# функция для удаления подписки
+def unsubscribe(request):
+    request.user.email = ''
+    request.user.save()
+    return HttpResponseRedirect(app_url)
+
+
 class RegisterFormView(FormView):
     form_class = UserCreationForm
     success_url = app_url + "login/"

@@ -25,6 +25,8 @@ href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
                     {% endif %}
                     {% if user.email == '' %}
                         | <a href="/riddles/subscribe">Subscribe</a>
+                    {% else %}
+                        | <a href="/riddles/unsubscribe">Unsubscribe</a>
                     {% endif %}
                 </p>
             {% else %}
