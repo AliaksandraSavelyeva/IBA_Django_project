@@ -1,4 +1,5 @@
 from django.conf.urls import url
+from django.urls import re_path
 
 from . import views
 
@@ -15,4 +16,12 @@ urlpatterns = [
     url(r'^login/$', views.LoginFormView.as_view()),
     url(r'^logout/$', views.LogoutView.as_view()),
     url(r'^password-change/', views.PasswordChangeView.as_view()),
+    re_path(r'^admin/$', views.admin, name='admin'),
+    re_path(r'^([0-9]+)/get_mark/$',
+            views.get_mark,
+            name='get_mark'),
+    re_path(r'^post_riddle/$',
+            views.post_riddle,
+            name='post_riddle'),
+
 ]

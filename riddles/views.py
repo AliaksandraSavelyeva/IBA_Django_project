@@ -1,4 +1,5 @@
 import json
+import numpy
 
 from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
@@ -35,15 +36,46 @@ def index(request):
     )
 
 
+def admin(request):
+    message = None
+    if "message" in request.GET:
+        message = request.GET["message"]
+    # создание HTML-страницы по шаблону admin.html
+    # с заданными параметрами latest_riddles и message
+    return render(
+        request,
+        "admin.html",
+        {
+            "latest_riddles":
+                Riddle.objects.order_by('-pub_date')[:5],
+            "message": message,
+        }
+    )
+
+
 # страница загадки со списком ответов
 def detail(request, riddle_id):
     error_message = None
     if "error_message" in request.GET:
         error_message = request.GET["error_message"]
+    # формируем список ответов
+    ordered_option_set = \
+        list(Option.objects.filter(riddle_id=riddle_id))
+    # формируем случайный порядок номеров ответов
+    option_iter = \
+        numpy.random.permutation(len(ordered_option_set))
+    # формируем новый список, в который выписываем ответы
+    # в сформированном случайном порядке
+    option_set = []
+    for num in option_iter:
+        option_set.append(ordered_option_set[num])
     return render(
         request,
         "answer.html",
         {
+            # передаем список ответов в случайном порядке
+            "option_set": option_set,
+
             "riddle": get_object_or_404(
                 Riddle, pk=riddle_id),
             "error_message": error_message,
@@ -102,6 +134,37 @@ def post_mark(request, riddle_id):
     msg.pub_date = datetime.now()
     msg.save()
     return HttpResponseRedirect(app_url+str(riddle_id))
+
+
+def post_riddle(request):
+    # защита от добавления загадок неадминистраторами
+    author = request.user
+    if not (author.is_authenticated and author.is_staff):
+        return HttpResponseRedirect(app_url+"admin")
+    # добавление загадки
+    rid = Riddle()
+    rid.riddle_text = request.POST['text']
+    rid.pub_date = datetime.now()
+    rid.save()
+    # добавление вариантов ответа
+    i = 1    # нумерация вариантов на форме начинается с 1
+    # количество вариантов неизвестно,
+    # поэтому ожидаем возникновение исключения,
+    # когда варианты кончатся
+    try:
+        while request.POST['option'+str(i)]:
+            opt = Option()
+            opt.riddle = rid
+            opt.text = request.POST['option'+str(i)]
+            opt.correct = (i == 1)
+            opt.save()
+            i += 1
+    # это ожидаемое исключение,
+    # при котором ничего делать не надо
+    except:
+        pass
+
+    return HttpResponseRedirect(app_url+str(rid.id))
 
 
 def get_mark(request, riddle_id):
