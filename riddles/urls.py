@@ -23,5 +23,5 @@ urlpatterns = [
     re_path(r'^post_riddle/$',
             views.post_riddle,
             name='post_riddle'),
-
+    re_path(r'^subscribe/$', views.SubscribeView.as_view()),
 ]

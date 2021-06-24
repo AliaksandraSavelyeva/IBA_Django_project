@@ -1,6 +1,8 @@
 import json
 import numpy
 
+from datetime import datetime
+from django import forms
 from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
@@ -8,7 +10,7 @@ from django.views.generic.edit import FormView
 from django.views.generic.base import View
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm
 from django.contrib.auth import login, logout
-from datetime import datetime
+from django.utils.translation import gettext, gettext_lazy as _
 from django.db.models import Avg
 
 from .models import Riddle, Option, Message, Mark
@@ -175,6 +177,34 @@ def get_mark(request, riddle_id):
     return JsonResponse(json.dumps(res), safe=False)
 
 
+def post(request, riddle_id):
+    msg = Message()
+    msg.author = request.user
+    msg.chat = get_object_or_404(Riddle, pk=riddle_id)
+    msg.message = request.POST['message']
+    msg.pub_date = datetime.now()
+    msg.save()
+    return HttpResponseRedirect(app_url+str(riddle_id))
+
+
+def msg_list(request, riddle_id):
+    res = list(
+            Message.objects
+                .filter(chat_id=riddle_id)
+                .order_by('-pub_date')[:5]
+                .values('author__username',
+                        'pub_date',
+                        'message'
+                )
+            )
+    for r in res:
+        r['pub_date'] = \
+            r['pub_date'].strftime(
+                '%d.%m.%Y %H:%M:%S'
+            )
+    return JsonResponse(json.dumps(res), safe=False)
+
+
 class RegisterFormView(FormView):
     form_class = UserCreationForm
     success_url = app_url + "login/"
@@ -206,42 +236,56 @@ class PasswordChangeView(FormView):
     form_class = PasswordChangeForm
     template_name = 'reg/password_change_form.html'
     success_url = app_url + 'login/'
+
     def get_form_kwargs(self):
         kwargs = super(PasswordChangeView, self).get_form_kwargs()
         kwargs['user'] = self.request.user
         if self.request.method == 'POST':
             kwargs['data'] = self.request.POST
         return kwargs
+
     def form_valid(self, form):
         form.save()
         return super(PasswordChangeView, self).form_valid(form)
 
 
-def post(request, riddle_id):
-    msg = Message()
-    msg.author = request.user
-    msg.chat = get_object_or_404(Riddle, pk=riddle_id)
-    msg.message = request.POST['message']
-    msg.pub_date = datetime.now()
-    msg.save()
-    return HttpResponseRedirect(app_url+str(riddle_id))
+# класс, описывающий логику формы:
+class SubscribeForm(forms.Form):
+    # поле для ввода e-mail
+    email = forms.EmailField(
+        label=_("E-mail"),
+        required=True,
+    )
+
+    # конструктор для запоминания пользователя, которому задается e-mail
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    # сохранение e-mail
+    def save(self, commit=True):
+        self.user.email = self.cleaned_data["email"]
+        if commit:
+            self.user.save()
+        return self.user
 
 
-def msg_list(request, riddle_id):
-    res = list(
-            Message.objects
-                .filter(chat_id=riddle_id)
-                .order_by('-pub_date')[:5]
-                .values('author__username',
-                        'pub_date',
-                        'message'
-                )
-            )
-    for r in res:
-        r['pub_date'] = \
-            r['pub_date'].strftime(
-                '%d.%m.%Y %H:%M:%S'
-            )
-    return JsonResponse(json.dumps(res), safe=False)
+# класс, описывающий взаимодействие логики
+class SubscribeView(FormView):
+    form_class = SubscribeForm
+    template_name = 'subscribe.html'
+    # после подписки возвращаем на главную станицу
+    success_url = app_url
+
+    # передача пользователя для конструктора класса с логикой
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    # вызов логики сохранения введенных данных
+    def form_valid(self, form):
+        form.save()
+        return HttpResponseRedirect(self.success_url)
 
 
