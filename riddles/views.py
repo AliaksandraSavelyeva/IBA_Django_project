@@ -169,17 +169,13 @@ def post_riddle(request):
         # проверка, что текущий пользователь подписан - указал e-mail
         if i.email != '':
             send_mail(
-                # тема письма
                 'New riddle',
-                # текст письма
                 'A new riddle was added on riddles portal:\n' +
                 'http://localhost:8000/riddles/' + str(rid.id) + '.',
-                # отправитель
                 'savelyeva.noreply@gmail.com',
                 # список получателей из одного получателя
                 [i.email],
-                # отключаем замалчивание ошибок,
-                # чтобы из видеть и исправлять
+                # отключаем замалчивание ошибок
                 False
             )
 

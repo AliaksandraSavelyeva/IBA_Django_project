@@ -1,7 +1,13 @@
-from django.conf.urls import url
+from django.conf.urls import url, include
 from django.urls import re_path
+from riddles.api import RiddleResource, OptionResource
+from tastypie.api import Api
 
 from . import views
+
+api = Api(api_name='api')
+api.register(RiddleResource())
+api.register(OptionResource())
 
 app_name = 'riddles'
 urlpatterns = [
@@ -21,4 +27,5 @@ urlpatterns = [
     re_path(r'^post_riddle/$', views.post_riddle, name='post_riddle'),
     re_path(r'^subscribe/$', views.SubscribeView.as_view()),
     re_path(r'^unsubscribe/$', views.unsubscribe, name='unsubscribe'),
+    re_path(r'^', include(api.urls)),
 ]
