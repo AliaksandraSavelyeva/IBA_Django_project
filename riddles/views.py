@@ -3,6 +3,8 @@ import numpy
 
 from datetime import datetime
 from django import forms
+from django.contrib.auth.models import User
+from django.core.mail import send_mail
 from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
@@ -150,8 +152,7 @@ def post_riddle(request):
     rid.save()
     # добавление вариантов ответа
     i = 1    # нумерация вариантов на форме начинается с 1
-    # количество вариантов неизвестно,
-    # поэтому ожидаем возникновение исключения,
+    # количество вариантов неизвестно, поэтому ожидаем возникновение исключения,
     # когда варианты кончатся
     try:
         while request.POST['option'+str(i)]:
@@ -161,10 +162,26 @@ def post_riddle(request):
             opt.correct = (i == 1)
             opt.save()
             i += 1
-    # это ожидаемое исключение,
-    # при котором ничего делать не надо
     except:
         pass
+
+    for i in User.objects.all():
+        # проверка, что текущий пользователь подписан - указал e-mail
+        if i.email != '':
+            send_mail(
+                # тема письма
+                'New riddle',
+                # текст письма
+                'A new riddle was added on riddles portal:\n' +
+                'http://localhost:8000/riddles/' + str(rid.id) + '.',
+                # отправитель
+                'Ваш только что зарегистрированный ящик',
+                # список получателей из одного получателя
+                [i.email],
+                # отключаем замалчивание ошибок,
+                # чтобы из видеть и исправлять
+                False
+            )
 
     return HttpResponseRedirect(app_url+str(rid.id))
 

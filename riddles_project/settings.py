@@ -128,3 +128,10 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# настройка отправки почты - параметры подключения к почтовому SMTP-серверу
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST_USER = 'savelyeva.noreply@gmail.com'
+EMAIL_HOST_PASSWORD = 'strad8142'
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
