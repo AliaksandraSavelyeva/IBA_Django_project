@@ -175,7 +175,7 @@ def post_riddle(request):
                 'A new riddle was added on riddles portal:\n' +
                 'http://localhost:8000/riddles/' + str(rid.id) + '.',
                 # отправитель
-                'Ваш только что зарегистрированный ящик',
+                'savelyeva.noreply@gmail.com',
                 # список получателей из одного получателя
                 [i.email],
                 # отключаем замалчивание ошибок,
